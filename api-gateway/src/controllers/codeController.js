@@ -9,11 +9,12 @@ exports.executeCode = async (req, res) => {
     const job = await queueService.addExecutionJob({
       language,
       code,
-      input
+      input,
+      userId: req.user.id
     });
 
     res.json({
-      message: "Execution job submitted",
+      message: "Job submitted",
       job
     });
 

@@ -1,7 +1,16 @@
+const { Queue } = require("bullmq");
+const connection = require("../config/redis");
+
+const executionQueue = new Queue("code-execution", {
+  connection
+});
+
 exports.addExecutionJob = async (data) => {
 
-  // later Redis queue add hoga
+  const job = await executionQueue.add("execute", data);
 
-  console.log("Job added to queue", data);
+  return {
+    jobId: job.id
+  };
 
 };
