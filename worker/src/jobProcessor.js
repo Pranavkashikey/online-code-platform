@@ -1,11 +1,23 @@
-const dockerRunner = require("./dockerRunner");
+const runJS = require("./runners/jsRunner");
+const runPython = require("./runners/pythonRunner");
+const runCPP = require("./runners/cppRunner");
 
 module.exports = async function(job) {
 
-  const { language, code, input } = job.data;
+  const { language, code } = job.data;
 
-  const result = await dockerRunner(language, code, input);
+  if (language === "javascript") {
+    return runJS(code);
+  }
 
-  return result;
+  if (language === "python") {
+    return runPython(code);
+  }
+
+  if (language === "cpp") {
+    return runCPP(code);
+  }
+
+  throw new Error("Unsupported language");
 
 };
