@@ -1,23 +1,28 @@
 const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
-const createTempDir = require("../utils/createTempDir.js");
+const createTempDir = require("../utils/createTempDir");
 
-module.exports = function runJS(code) {
+module.exports = function runJS(code, input) {
 
   return new Promise((resolve, reject) => {
 
     const dir = createTempDir();
-    const filePath = path.join(dir, "main.js");
 
-    fs.writeFileSync(filePath, code);
+    const codePath = path.join(dir, "main.js");
+    const inputPath = path.join(dir, "input.txt");
 
-    const command =
-      `docker run --rm \
-      --memory=128m \
-      --cpus=0.5 \
-      -v ${dir}:/app \
-      node:18 node /app/main.js`;
+    fs.writeFileSync(codePath, code);
+    fs.writeFileSync(inputPath, input || "");
+
+    const command = `
+      docker run --rm
+      --memory=128m
+      --cpus=0.5
+      -v ${dir}:/app
+      node:18
+      bash -c "node /app/main.js < /app/input.txt"
+    `;
 
     exec(command, { timeout: 5000 }, (error, stdout, stderr) => {
 
