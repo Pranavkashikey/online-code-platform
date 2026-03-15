@@ -5,52 +5,81 @@ const axios = require("axios");
 
 module.exports = async function(job) {
 
-  const { language, code, input, userId } = job.data;
-
-  let output;
+  const { language, code, problemId, userId } = job.data;
 
   try {
 
-    // run code based on language
-    if (language === "javascript") {
-      output = await runJS(code, input);
+    // get test cases from API
+    const { data: testCases } = await axios.get(
+      `http://localhost:5000/api/problem/${problemId}/tests`
+    );
+
+    let verdict = "Accepted";
+    let lastOutput = "";
+
+    for (const testCase of testCases) {
+
+      let output;
+
+      if (language === "javascript") {
+        output = await runJS(code, testCase.input);
+      }
+
+      else if (language === "python") {
+        output = await runPython(code, testCase.input);
+      }
+
+      else if (language === "cpp") {
+        output = await runCPP(code, testCase.input);
+      }
+
+      else {
+        throw new Error("Unsupported language");
+      }
+
+      lastOutput = output;
+
+      // compare expected output
+      if (output.trim() !== testCase.expectedOutput.trim()) {
+
+        verdict = "Wrong Answer";
+
+        await axios.post("http://localhost:5000/api/result", {
+          jobId: job.id,
+          userId,
+          language,
+          code,
+          input: testCase.input,
+          output,
+          verdict
+        });
+
+        return verdict;
+      }
+
     }
 
-    else if (language === "python") {
-      output = await runPython(code, input);
-    }
-
-    else if (language === "cpp") {
-      output = await runCPP(code, input);
-    }
-
-    else {
-      throw new Error("Unsupported language");
-    }
-
-    
+    // all testcases passed
     await axios.post("http://localhost:5000/api/result", {
       jobId: job.id,
       userId,
       language,
       code,
-      input,
-      output
+      output: lastOutput,
+      verdict
     });
 
-    return output;
+    return verdict;
 
   } catch (error) {
 
-  
     await axios.post("http://localhost:5000/api/result", {
       jobId: job.id,
       userId,
       language,
       code,
-      input,
       output: error.message,
-      status: "failed"
+      verdict: "Runtime Error"
     });
 
     throw error;
