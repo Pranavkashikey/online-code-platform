@@ -1,6 +1,6 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
-
+const bcrypt = require("bcryptjs");
 
 // REGISTER
 exports.register = async (req, res) => {
@@ -17,10 +17,14 @@ exports.register = async (req, res) => {
       });
     }
 
+    // HASH PASSWORD
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     const user = new User({
       name,
       email,
-      password
+      password: hashedPassword
     });
 
     await user.save();
@@ -40,7 +44,6 @@ exports.register = async (req, res) => {
 };
 
 
-
 // LOGIN
 exports.login = async (req, res) => {
 
@@ -56,7 +59,8 @@ exports.login = async (req, res) => {
       });
     }
 
-    const isMatch = await user.comparePassword(password);
+    // COMPARE PASSWORD
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       return res.status(400).json({
